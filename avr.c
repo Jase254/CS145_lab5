@@ -31,6 +31,8 @@ int main(void){
 	lcd_init();
 	struct datetime dt = {2019, 2, 11, 19, 12, 5, 16, 0};
 	display_time(&dt);
+	struct datetime alarms[5];
+	int num_alarms = 0;
 	for(;;){
 		//Main loop will check if key pressed, and if it is A or B, do something
 		avr_wait(85);
@@ -48,6 +50,16 @@ int main(void){
 				dt.military = dt.military^1;
 				avr_wait(150);
 				break;
+			case 12:
+				struct datetime alarm = {2019, 2, 11, 19, 12, 5, 16, 0};
+				lcd_clr();
+				lcd_pos(0,1);
+				lcd_puts2("Set New Alarm");	
+				avr_wait(1000);
+				set_date(&alarm);
+				set_time(&alarm);
+				alarms[num_alarms] = alarm;
+				
 			default:
 				break;
 		}
