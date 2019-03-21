@@ -14,10 +14,18 @@
 #define WDR() asm volatile("wdr"::)
 #define NOP() asm volatile("nop"::)
 #define RST() for(;;);
+#define A 1784
 
 void avr_init(void);
 
+struct note{
+	float freq;
+	int dur;
+};
+
 void avr_wait(unsigned short msec);
+void PlayNote(float freq, unsigned int duration);
+
 int get_key();
 int get_num();
 struct datetime{
@@ -32,6 +40,7 @@ struct datetime{
 };
 void keep_time(struct datetime *);
 void keep_date(struct datetime *);
+int check_alarm(struct datetime *, struct datetime[], int);
 int is_pressed(int, int);
 void blink(int);
 void set_time(struct datetime *);

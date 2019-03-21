@@ -9,12 +9,27 @@ avr_init(void)
 	WDTCR = 15;
 }
 
+void 
+PlayNote(float freq, unsigned int duration){
+	float wav = (1/freq) * 1000;
+	unsigned int cycles = duration/wav;
+	float period = (wav / 2) * 100;
+	
+	while(cycles > 0){
+		PORTA |= (1<<PA1);
+		avr_wait(period);
+		PORTA &= ~(1<<PA1);
+		avr_wait(period);
+		cycles--;
+	}
+}
+
 void
 avr_wait(unsigned short msec)
 {
 	TCCR0 = 3;
 	while (msec--) {
-		TCNT0 = (unsigned char)(256 - (XTAL_FRQ / 64) * 0.001);
+		TCNT0 = (unsigned char)(256 - (XTAL_FRQ / 64) * 0.0001);
 		SET_BIT(TIFR, TOV0);
 		WDR();
 		while (!GET_BIT(TIFR, TOV0));
@@ -29,15 +44,26 @@ int main(void){
 	// Initialize everything
 	avr_init();	
 	lcd_init();
-	struct datetime dt = {2019, 2, 11, 19, 12, 5, 16, 0};
+	DDRA |= (1 << PA1);
+	struct datetime dt = {2019, 3, 21, 11, 55, 0, 0, 0};
 	display_time(&dt);
 	struct datetime alarms[5];
 	int num_alarms = 0;
+	int sound_alarm = 0;
+	struct note n = {A, 30};
 	for(;;){
 		//Main loop will check if key pressed, and if it is A or B, do something
-		avr_wait(85);
+		avr_wait(850);
 		keep_time(&dt);
 		display_time(&dt);
+		sound_alarm = check_alarm(&dt, alarms, num_alarms);
+		
+		if(sound_alarm){
+			for(int i = 0; i < 3; ++i){
+				PlayNote(n.freq, n.dur);
+			}
+		}
+			 
 		int key = get_key();
 		switch(key){
 			// Set date and time
@@ -48,23 +74,39 @@ int main(void){
 			// Toggle military time
 			case 8:
 				dt.military = dt.military^1;
-				avr_wait(150);
+				avr_wait(1500);
 				break;
 			case 12:
-				struct datetime alarm = {2019, 2, 11, 19, 12, 5, 16, 0};
 				lcd_clr();
 				lcd_pos(0,1);
 				lcd_puts2("Set New Alarm");	
-				avr_wait(1000);
-				set_date(&alarm);
-				set_time(&alarm);
-				alarms[num_alarms] = alarm;
-				
+				avr_wait(10000);
+				set_date(&alarms[num_alarms]);
+				set_time(&alarms[num_alarms]);
+				num_alarms++;
 			default:
 				break;
 		}
 	}
 }
+
+//Check alarms
+int check_alarm(struct datetime *dt, struct datetime alarms[], int size){
+	int alarm = 0;
+	for( int i = 0; i < size; ++i){
+		if((alarms[i].year == dt->year) &&
+		(alarms[i].month == dt->month) &&
+		(alarms[i].day == dt->day) &&
+		(alarms[i].hour == dt->hour) &&
+		(alarms[i].minute == dt->minute) && 
+		(alarms[i].second == dt->second)){
+			alarm = 1;
+			break;
+	}
+	}
+	return alarm;
+}
+	
 // Display the time to lcd
 void display_time(struct datetime *dt){
 	sprintf(out, "%d/%d/%d", dt->month, dt->day, dt->year);
@@ -100,14 +142,14 @@ void set_time(struct datetime *dt){
 	strcpy(str, "Minute: ");
 	lcd_puts2(str);
 	dt->minute = get_num();
-	avr_wait(200);
+	avr_wait(2000);
 	
 	lcd_clr();
 	lcd_pos(0,1);
 	strcpy(str, "Hour: ");
 	lcd_puts2(str);
 	dt->hour = get_num();
-	avr_wait(200);
+	avr_wait(2000);
 	dt->second = 0;
 	dt->subsecond = 0;
 }
@@ -120,21 +162,21 @@ void set_date(struct datetime *dt){
 	strcpy(str, "Day: ");
 	lcd_puts2(str);
 	dt->day = get_num();
-	avr_wait(200);
+	avr_wait(2000);
 	
 	lcd_clr();
 	lcd_pos(0,1);
 	strcpy(str, "Month: ");
 	lcd_puts2(str);
 	dt->month = get_num();
-	avr_wait(200);
+	avr_wait(2000);
 	
 	lcd_clr();
 	lcd_pos(0,1);
 	strcpy(str, "Year: ");
 	lcd_puts2(str);
 	dt->year = get_num();
-	avr_wait(200);
+	avr_wait(2000);
 }
 /************************************************************************/
 /* Gets actual keypad value (numbers 0-9)                               */
@@ -160,7 +202,7 @@ int get_num(void){
 				num = (num * 10) + key;
 				sprintf(out, "%d", key);
 				lcd_puts2(out);
-				avr_wait(200);
+				avr_wait(2000);
 				break;
 		}
 	}
