@@ -1,2 +1,2 @@
-# SC145_lab5
+# CS145_lab5
 Alarm Clock
