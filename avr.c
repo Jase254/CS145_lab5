@@ -46,10 +46,12 @@ int main(void){
 	lcd_init();
 	DDRA |= (1 << PA1);
 	struct datetime dt = {2019, 3, 21, 11, 55, 0, 0, 0};
+	struct time timer = {0, 0, 0, 0, 0};
 	display_time(&dt);
 	struct datetime alarms[5];
 	int num_alarms = 0;
 	int sound_alarm = 0;
+	int finished = 0;
 	struct note n = {A, 30};
 	for(;;){
 		//Main loop will check if key pressed, and if it is A or B, do something
@@ -59,9 +61,7 @@ int main(void){
 		sound_alarm = check_alarm(&dt, alarms, num_alarms);
 		
 		if(sound_alarm){
-			for(int i = 0; i < 3; ++i){
-				PlayNote(n.freq, n.dur);
-			}
+			PlayNote(n.freq, n.dur);
 		}
 			 
 		int key = get_key();
@@ -84,6 +84,27 @@ int main(void){
 				set_date(&alarms[num_alarms]);
 				set_time(&alarms[num_alarms]);
 				num_alarms++;
+				break;
+			case 16:
+				lcd_clr();
+				lcd_pos(0,1);
+				lcd_puts2("Set New Timer");	
+				avr_wait(10000);
+				set_time(&timer);
+				finished = 0;
+				while(!finished){
+					count_down(&timer);
+					display_time(&timer);
+					
+					if((timer.hour == 0) && 
+					(timer.minute == 0) && 
+					(timer.second == 0) &&
+					(timer.subsecond == 0)){
+						finished = 1;
+					}
+				}
+				PlayNote(n.freq, n.dur);
+				break;
 			default:
 				break;
 		}
@@ -105,6 +126,30 @@ int check_alarm(struct datetime *dt, struct datetime alarms[], int size){
 	}
 	}
 	return alarm;
+}
+
+void display_timer(struct time *tm){
+	lcd_clr();
+	lcd_pos(0,1);
+	lcd_puts2(out);
+	lcd_pos(1,1);
+	// If military time, display without special formatting (default)
+	if(tm->military){
+		sprintf(out, "%02d:%02d:%02d:%d", tm->hour, tm->minute, tm->second, tm->subsecond);
+	}
+	else{
+		// Otherwise some special cases are in play for AM/PM
+		if(tm->hour > 12){
+			sprintf(out, "%02d:%02d:%02d:%d %s", (tm->hour - 12), tm->minute, tm->second, tm->subsecond, "PM");
+		}
+		else if(tm->hour == 0){
+			sprintf(out, "%02d:%02d:%02d:%02d %s", (tm->hour + 12), tm->minute, tm->second, tm->subsecond, "AM");
+		}
+		else{
+			sprintf(out, "%02d:%02d:%02d:%d %s", tm->hour, tm->minute, tm->second, tm->subsecond, "AM");
+		}
+	}
+	lcd_puts2(out);
 }
 	
 // Display the time to lcd
@@ -221,6 +266,21 @@ void keep_time(struct datetime *date){
 				if(++(date->hour) > 23){
 					date->hour = 0;
 					keep_date(date);
+				}
+			}
+		}
+	}
+}
+
+void count_down(struct time *tm){
+	if(--(tm->subsecond) < 0){
+		tm->subsecond = 10;
+		if(--(tm->second) < 0){
+			tm->second = 60;
+			if(--(tm->minute) < 0){
+				tm->minute = 60;
+				if(--(tm->hour) < 0){
+					tm->hour = 0;
 				}
 			}
 		}

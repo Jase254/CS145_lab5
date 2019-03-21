@@ -38,13 +38,24 @@ struct datetime{
 	char subsecond;
 	char military;
 };
+
+struct time{
+	char hour;
+	char minute;
+	char second;
+	char subsecond;
+	char military;
+}
 void keep_time(struct datetime *);
 void keep_date(struct datetime *);
+void count_down(struct time *);
 int check_alarm(struct datetime *, struct datetime[], int);
 int is_pressed(int, int);
 void blink(int);
 void set_time(struct datetime *);
+void set_timer(struct time *);
 void set_date(struct datetime *);
 void display_time(struct datetime *);
+void display_time(struct time *);
 
 #endif /* _AVR_H */
