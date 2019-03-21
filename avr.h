@@ -44,8 +44,7 @@ struct time{
 	char minute;
 	char second;
 	char subsecond;
-	char military;
-}
+};
 void keep_time(struct datetime *);
 void keep_date(struct datetime *);
 void count_down(struct time *);
@@ -56,6 +55,6 @@ void set_time(struct datetime *);
 void set_timer(struct time *);
 void set_date(struct datetime *);
 void display_time(struct datetime *);
-void display_time(struct time *);
+void display_timer(struct time *);
 
 #endif /* _AVR_H */
