@@ -15,6 +15,10 @@
 #define NOP() asm volatile("nop"::)
 #define RST() for(;;);
 #define A 1784
+#define NY 3
+#define LN 7
+#define BJ 15
+#define NZ 20
 
 void avr_init(void);
 
@@ -56,5 +60,6 @@ void set_timer(struct time *);
 void set_date(struct datetime *);
 void display_time(struct datetime *);
 void display_timer(struct time *);
+struct datetime world_calc(struct datetime *date, char offset);
 
 #endif /* _AVR_H */

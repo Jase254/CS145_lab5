@@ -45,7 +45,11 @@ int main(void){
 	avr_init();	
 	lcd_init();
 	DDRA |= (1 << PA1);
+	char *tzones[5]= {"Los Angeles", "New York", "London", "Beijing", "Auckland"};
 	struct datetime dt = {2019, 3, 21, 11, 55, 0, 0, 0};
+	struct datetime zones[5];
+	zones[0] = dt;
+	int zindex = 0;
 	struct time timer = {0, 0, 0, 0};
 	display_time(&dt);
 	struct datetime alarms[5];
@@ -56,11 +60,16 @@ int main(void){
 	for(;;){
 		//Main loop will check if key pressed, and if it is A or B, do something
 		avr_wait(850);
-		keep_time(&dt);
-		display_time(&dt);
-		sound_alarm = check_alarm(&dt, alarms, num_alarms);
+		keep_time(&zones[0]);
+		zones[1] = world_calc(&zones[0], NY);
+		zones[2] = world_calc(&zones[0], LN);
+		zones[3] = world_calc(&zones[0], BJ);
+		zones[4] = world_calc(&zones[0], NZ);
+		display_time(&zones[zindex]);
+		sound_alarm = check_alarm(&zones[zindex], alarms, num_alarms);
 		
 		if(sound_alarm){
+			PlayNote(n.freq, n.dur);
 			PlayNote(n.freq, n.dur);
 		}
 			 
@@ -68,12 +77,12 @@ int main(void){
 		switch(key){
 			// Set date and time
 			case 4:
-				set_date(&dt);
-				set_time(&dt);
+				set_date(&zones[0]);
+				set_time(&zones[0]);
 				break;
 			// Toggle military time
 			case 8:
-				dt.military = dt.military^1;
+				zones[0].military = zones[0].military^1;
 				avr_wait(1500);
 				break;
 			case 12:
@@ -84,6 +93,29 @@ int main(void){
 				set_date(&alarms[num_alarms]);
 				set_time(&alarms[num_alarms]);
 				num_alarms++;
+				lcd_clr();
+				lcd_pos(0,1);
+				sprintf(out, "Alarm %d set", num_alarms);
+				lcd_puts2(out);
+				avr_wait(10000);
+				break;
+			case 13:
+				if(--zindex < 0){
+					zindex = 4;
+				}
+				lcd_clr();
+				lcd_pos(0,1);
+				lcd_puts2(tzones[zindex]);
+				avr_wait(10000);
+				break;
+			case 15:
+				if(++zindex > 4){
+					zindex = 0;
+				}
+				lcd_clr();
+				lcd_pos(0,1);
+				lcd_puts2(tzones[zindex]);
+				avr_wait(10000);
 				break;
 			case 16:
 				lcd_clr();
@@ -104,6 +136,7 @@ int main(void){
 						finished = 1;
 					}
 				}
+				PlayNote(n.freq, n.dur);
 				PlayNote(n.freq, n.dur);
 				break;
 			default:
@@ -154,6 +187,8 @@ void set_timer(struct time *tm){
 
 void display_timer(struct time *tm){
 	lcd_clr();
+	lcd_pos(0,1);
+	lcd_puts2("Countdown Timer");
 	lcd_pos(1,1);
 	sprintf(out, "%02d:%02d:%02d:%d", tm->hour, tm->minute, tm->second, tm->subsecond);
 	lcd_puts2(out);
@@ -258,6 +293,27 @@ int get_num(void){
 				break;
 		}
 	}
+}
+
+struct datetime world_calc(struct datetime *date, char offset){
+	struct datetime temp = {
+		date->year,
+		date->month,
+		date->day,
+		date->hour,
+		date->minute,
+		date->second,
+		date->subsecond,
+		date->military
+		};
+	if(temp.hour + offset > 23){
+		keep_date(&temp);
+		temp.hour = temp.hour + offset - 23 - 1;
+	}
+	else{
+		temp.hour = temp.hour + offset;
+	}
+	return temp;
 }
 
 /************************************************************************/
